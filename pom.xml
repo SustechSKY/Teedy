@@ -136,7 +136,7 @@
         <version>3.20.0</version> <!-- 使用最新版本 -->
         <configuration>
           <rulesets>
-            <ruleset>/mnt/e/Github/Teedy/pmd_ruleset.xml</ruleset>
+            <ruleset>pmd_ruleset.xml</ruleset>
           </rulesets>
           <failOnViolation>false</failOnViolation>
         </configuration>
@@ -225,7 +225,7 @@
         <version>3.20.0</version> <!-- 使用最新版本 -->
         <configuration>
           <rulesets>
-            <ruleset>/mnt/e/Github/Teedy/pmd_ruleset.xml</ruleset>
+            <ruleset>pmd_ruleset.xml</ruleset>
           </rulesets>
           <failOnViolation>false</failOnViolation>
         </configuration>
