@@ -250,6 +250,7 @@
     "user": {
       "title": "用户 <small>管理</small>",
       "add_user": "添加用户",
+      "register_user": "注册用户",
       "username": "用户名",
       "create_date": "创建日期",
       "totp_enabled": "为该帐号启用双身份认证",
@@ -260,6 +261,7 @@
         "edit_user_failed_message": "该用户名已被占用",
         "edit_user_title": "<small>编辑</small> \"{{ username }}\"",
         "add_user_title": "<small>添加一个</small> 用户",
+        "register_user_title": "<small>注册一个</small> 用户",
         "username": "用户名",
         "email": "邮箱",
         "groups": "群组",
@@ -270,7 +272,8 @@
         "disabled": "禁用用户",
         "password_reset_btn": "给该用户发送密码重置电子邮件",
         "password_lost_sent_title": "密码重置邮件已发送",
-        "password_lost_sent_message": "密码重置电子邮件已发送至 <strong>{{ username }}</strong>"
+        "password_lost_sent_message": "密码重置电子邮件已发送至 <strong>{{ username }}</strong>",
+        "register": "注册"
       }
     },
     "workflow": {

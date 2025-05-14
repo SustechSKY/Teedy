@@ -417,6 +417,15 @@ angular.module('docs',
           controller: 'GroupProfile'
         }
       }
+    })
+    .state('register', {
+      url: '/register',
+      views: {
+        'page': {
+          templateUrl: 'partial/docs/register.html',
+          controller: 'Register'
+        }
+      }
     });
 
   // Configuring Restangular
