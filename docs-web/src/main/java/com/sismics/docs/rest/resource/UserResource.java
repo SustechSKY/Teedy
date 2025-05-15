@@ -43,6 +43,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * User REST resources.
@@ -1099,6 +1100,202 @@ public class UserResource extends BaseResource {
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
         return Response.ok().entity(response.build()).build();
+    }
+
+    /**
+     * Submit a registration request.
+     *
+     * @api {put} /user/register_request Submit a registration request
+     * @apiName PutUserRegisterRequest
+     * @apiGroup User
+     * @apiParam {String{3..50}} username Username
+     * @apiParam {String{8..50}} password Password
+     * @apiParam {String{1..100}} email E-mail
+     * @apiSuccess {String} status Status OK
+     * @apiError (client) ValidationError Validation error
+     * @apiError (client) AlreadyExistingUsername Login already used
+     * @apiPermission none
+     * @apiVersion 1.5.0
+     *
+     * @param username Username
+     * @param password Password
+     * @param email E-Mail
+     * @return Response
+     */
+    @PUT
+    @Path("register_request")
+    public Response registerRequest(
+        @FormParam("username") String username,
+        @FormParam("password") String password,
+        @FormParam("email") String email) {
+        
+        // 校验
+        ValidationUtil.validateLength(username, "username", 3, 50);
+        ValidationUtil.validateUsername(username, "username");
+        ValidationUtil.validateLength(password, "password", 8, 50);
+        ValidationUtil.validateLength(email, "email", 1, 100);
+        ValidationUtil.validateEmail(email, "email");
+
+        // 检查用户名是否已存在
+        UserDao userDao = new UserDao();
+        if (userDao.getActiveByUsername(username) != null) {
+            throw new ClientException("AlreadyExistingUsername", "Login already used");
+        }
+
+        // 检查是否有重复申请
+        UserRegisterRequestDao requestDao = new UserRegisterRequestDao();
+        List<UserRegisterRequest> exist = requestDao.findPending();
+        for (UserRegisterRequest r : exist) {
+            if (r.getUsername().equals(username)) {
+                throw new ClientException("AlreadyExistingUsername", "Login already used");
+            }
+        }
+
+        // 创建注册申请
+        UserRegisterRequest req = new UserRegisterRequest();
+        req.setId(UUID.randomUUID().toString());
+        req.setUsername(username);
+        req.setPassword(password);
+        req.setEmail(email);
+        req.setStatus("PENDING");
+        req.setRequestTime(new Date()); 
+        requestDao.create(req);
+
+        return Response.ok(Json.createObjectBuilder().add("status", "ok").build()).build();
+    }
+
+    /**
+     * Get all registration requests.
+     *
+     * @api {get} /user/register_requests Get registration requests
+     * @apiName GetUserRegisterRequests
+     * @apiGroup User
+     * @apiSuccess {Object[]} requests List of registration requests
+     * @apiSuccess {String} requests.id Request ID
+     * @apiSuccess {String} requests.username Username
+     * @apiSuccess {String} requests.email E-mail
+     * @apiSuccess {String} requests.status Status
+     * @apiSuccess {Number} requests.requestTime Request time
+     * @apiError (client) ForbiddenError Access denied
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @return Response
+     */
+    @GET
+    @Path("register_requests")
+    public Response getRegisterRequests() {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        UserRegisterRequestDao requestDao = new UserRegisterRequestDao();
+        List<UserRegisterRequest> requests = requestDao.findPending();
+
+        JsonArrayBuilder requestsArray = Json.createArrayBuilder();
+        for (UserRegisterRequest req : requests) {
+            requestsArray.add(Json.createObjectBuilder()
+                .add("id", req.getId())
+                .add("username", req.getUsername())
+                .add("email", req.getEmail())
+                .add("status", req.getStatus())
+                .add("requestTime", req.getRequestTime().getTime()));
+        }
+
+        return Response.ok(Json.createObjectBuilder()
+            .add("requests", requestsArray)
+            .build()).build();
+    }
+
+    /**
+     * Approve a registration request.
+     *
+     * @api {post} /user/register_request/:id/approve Approve a registration request
+     * @apiName PostUserRegisterRequestApprove
+     * @apiGroup User
+     * @apiParam {String} id Request ID
+     * @apiSuccess {String} status Status OK
+     * @apiError (client) ForbiddenError Access denied
+     * @apiError (client) NotFound Request not found
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @param id Request ID
+     * @return Response
+     */
+    @POST
+    @Path("register_request/{id}/approve")
+    public Response approveRegisterRequest(@PathParam("id") String id) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        UserRegisterRequestDao requestDao = new UserRegisterRequestDao();
+        UserRegisterRequest request = requestDao.getById(id);
+        if (request == null) {
+            throw new NotFoundException();
+        }
+
+        // 创建用户
+        User user = new User();
+        user.setRoleId(Constants.DEFAULT_USER_ROLE);
+        user.setUsername(request.getUsername());
+        user.setPassword(request.getPassword());
+        user.setEmail(request.getEmail());
+        user.setStorageQuota(1000L);
+        user.setOnboarding(true);
+
+        UserDao userDao = new UserDao();
+        try {
+            userDao.create(user, principal.getId());
+        } catch (Exception e) {
+            throw new ServerException("UnknownError", "Unknown server error", e);
+        }
+
+        // 更新申请状态
+        request.setStatus("APPROVED");
+        requestDao.update(request);
+
+        return Response.ok(Json.createObjectBuilder().add("status", "ok").build()).build();
+    }
+
+    /**
+     * Reject a registration request.
+     *
+     * @api {post} /user/register_request/:id/reject Reject a registration request
+     * @apiName PostUserRegisterRequestReject
+     * @apiGroup User
+     * @apiParam {String} id Request ID
+     * @apiSuccess {String} status Status OK
+     * @apiError (client) ForbiddenError Access denied
+     * @apiError (client) NotFound Request not found
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @param id Request ID
+     * @return Response
+     */
+    @POST
+    @Path("register_request/{id}/reject")
+    public Response rejectRegisterRequest(@PathParam("id") String id) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        UserRegisterRequestDao requestDao = new UserRegisterRequestDao();
+        UserRegisterRequest request = requestDao.getById(id);
+        if (request == null) {
+            throw new NotFoundException();
+        }
+
+        // 更新申请状态
+        request.setStatus("REJECTED");
+        requestDao.update(request);
+
+        return Response.ok(Json.createObjectBuilder().add("status", "ok").build()).build();
     }
 
     /**

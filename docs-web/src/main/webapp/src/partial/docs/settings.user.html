@@ -5,6 +5,38 @@
 
 <div class="row">
   <div class="col-md-4 well">
+    <!-- 注册申请列表 -->
+    <div class="panel panel-default" ng-if="isAdmin">
+      <div class="panel-heading">
+        <h3 class="panel-title">{{ '申请列表' | translate }}</h3>
+      </div>
+      <div class="panel-body">
+        <div ng-if="!registrationRequests || registrationRequests.length === 0">
+          {{ '暂无申请用户' | translate }}
+        </div>
+        <div ng-if="registrationRequests && registrationRequests.length > 0">
+          <div class="list-group">
+            <div class="list-group-item" ng-repeat="request in registrationRequests">
+              <h4 class="list-group-item-heading">{{ request.username }}</h4>
+              <p class="list-group-item-text">
+                {{ '用户邮箱' | translate }}: {{ request.email }}<br>
+                {{ '申请时间' | translate }}: {{ request.requestTime | date:'medium' }}
+              </p>
+              <div class="btn-group">
+                <button class="btn btn-success btn-sm" ng-click="approveRequest(request)">
+                  <span class="fas fa-check"></span> {{ 'approve' | translate }}
+                </button>
+                <button class="btn btn-danger btn-sm" ng-click="rejectRequest(request)">
+                  <span class="fas fa-times"></span> {{ 'reject' | translate }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 现有用户列表 -->
     <table class="table table-hover table-users">
       <thead>
         <tr>
