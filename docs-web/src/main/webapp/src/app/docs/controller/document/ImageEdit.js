@@ -11,7 +11,6 @@ angular.module('docs')
     let currentDeg = 0;
     let cropper = null;
     let inited = false;
-    let sharpenOn = false;
     let drawMode = false;
     let rotationPending = false;
     let cropMode = false;
@@ -136,45 +135,6 @@ angular.module('docs')
       ctx.clearRect(0, 0, overlay.width, overlay.height);
       strokes = [];
       currentStroke = null;
-    };
-
-    // 切换锐化滤镜
-    $scope.toggleSharpen = () => {
-      if (cropMode) return alert('请先保存剪裁再进行操作');
-      if (drawMode) return alert('请先保存涂鸦');
-
-      sharpenOn = !sharpenOn;
-      console.log('toggleSharpen called →', sharpenOn);
-
-      const canvasLayer = document.querySelector('.cropper-canvas');
-      if (canvasLayer) {
-        canvasLayer.style.filter = sharpenOn ? 'contrast(1.25) saturate(1.15)' : '';
-      }
-    };
-
-    // 应用锐化滤镜
-    const applySharpen = (ctx, w, h) => {
-      const imgData = ctx.getImageData(0, 0, w, h);
-      const src = imgData.data;
-      const dst = new Uint8ClampedArray(src);
-      const idx = (x, y, c) => ((y * w + x) << 2) + c;
-
-      const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          for (let c = 0; c < 3; c++) {
-            let sum = 0, k = 0;
-            for (let ky = -1; ky <= 1; ky++) {
-              for (let kx = -1; kx <= 1; kx++) {
-                sum += src[idx(x + kx, y + ky, c)] * kernel[k++];
-              }
-            }
-            dst[idx(x, y, c)] = Math.min(255, Math.max(0, sum));
-          }
-        }
-      }
-      imgData.data.set(dst);
-      ctx.putImageData(imgData, 0, 0);
     };
 
     // 设置绘图事件
@@ -344,12 +304,6 @@ angular.module('docs')
         alert('裁剪区域为空，无法保存');
         return;
       }
-
-      const w = canvas.width, h = canvas.height;
-      const ctx = canvas.getContext('2d');
-
-      if (sharpenOn) applySharpen(ctx, w, h);
-
       canvas.toBlob((blob) => {
         const fd = new FormData();
         fd.append('file', blob, $scope.fileName);
