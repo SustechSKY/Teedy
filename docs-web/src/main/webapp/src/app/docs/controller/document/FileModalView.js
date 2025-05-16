@@ -123,4 +123,14 @@ angular.module('docs').controller('FileModalView', function ($uibModalInstance, 
   $scope.canDisplayPreview = function () {
     return $scope.file && $scope.file.mimetype !== 'application/pdf';
   };
+
+  $scope.editImage = function () {
+    const fileId   = $stateParams.fileId;
+    const fileName = $scope.file.name;
+
+    const editorUrl = $state.href('image',
+        { fileId, fileName }, { absolute: true });
+
+    window.open(editorUrl, '图像编辑', 'width=1000,height=800');
+  };
 });

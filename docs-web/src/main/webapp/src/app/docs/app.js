@@ -355,6 +355,15 @@ angular.module('docs',
         }
       }
     })
+    .state('image', {
+      url: '/image?fileId&fileName',
+      views: {
+        'page': {
+          templateUrl: 'partial/docs/image.edit.html',
+          controller: 'ImageEdit'
+        }
+      }
+    })
     .state('login', {
       url: '/login?redirectState&redirectParams',
       views: {
