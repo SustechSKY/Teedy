@@ -304,12 +304,53 @@ angular.module('docs')
         alert('裁剪区域为空，无法保存');
         return;
       }
+
+      const w = canvas.width, h = canvas.height;
+      const ctx = canvas.getContext('2d');
+
+      // 应用旋转
+      if (currentDeg!== 0) {
+        const tmpCanvas = document.createElement('canvas');
+        const tmpCtx = tmpCanvas.getContext('2d');
+        tmpCanvas.width = h;
+        tmpCanvas.height = w;
+
+        tmpCtx.translate(tmpCanvas.width / 2, tmpCanvas.height / 2);
+        tmpCtx.rotate((currentDeg * Math.PI) / 180);
+        tmpCtx.translate(-canvas.width / 2, -canvas.height / 2);
+        tmpCtx.drawImage(canvas, 0, 0);
+
+        canvas.width = tmpCanvas.width;
+        canvas.height = tmpCanvas.height;
+        ctx.drawImage(tmpCanvas, 0, 0);
+      }
+
+      // 应用涂鸦
+      if (strokes.length > 0) {
+        const overlay = document.getElementById('draw-layer');
+        const scale = canvas.width / overlay.width;
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 3 * scale;
+
+        const drawStroke = (pts) => {
+          if (pts.length < 2) return;
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0] * scale, pts[0][1] * scale);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i][0] * scale, pts[i][1] * scale);
+          }
+          ctx.stroke();
+        };
+        strokes.forEach(drawStroke);
+      }
+
       canvas.toBlob((blob) => {
         const fd = new FormData();
         fd.append('file', blob, $scope.fileName);
         fd.append('previousFileId', $scope.fileId);
 
         fetch('../api/file', { method: 'PUT', body: fd, credentials: 'include' })
+          .then(response => response.json())
           .then(() => {
             alert('已保存');
             window.close();
